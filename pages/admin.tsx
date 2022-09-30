@@ -4,7 +4,6 @@ import client from "lib/client";
 import React, { useEffect, useState } from "react";
 import cx from "classnames";
 import { toast } from "react-toastify";
-import { userAgentFromString } from "next/server";
 
 const Login = ({ setUser }: { setUser: (org: any) => void }) => {
   const [password, setPassword] = useState("");
