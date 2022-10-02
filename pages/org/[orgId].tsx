@@ -144,6 +144,7 @@ const App = ({ organization }: { organization: any }) => {
           <Button
             disabled={amountLeft === 0 ? false : !amountLeft || loading}
             onClick={handleFinish}
+            key="finish"
           >
             {loading ? "טוען..." : "סיים תדלוק"}
           </Button>
@@ -163,7 +164,11 @@ const App = ({ organization }: { organization: any }) => {
             placeholder="0000"
             type="number"
           />
-          <Button disabled={!code || loading} onClick={handleGetData}>
+          <Button
+            disabled={!code || loading}
+            key="code"
+            onClick={handleGetData}
+          >
             {loading ? "טוען..." : "קבלת קוד דלק"}
           </Button>
 

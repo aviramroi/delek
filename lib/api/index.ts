@@ -73,7 +73,7 @@ export const GET_ORG_FULL_DATA = gql`
       name
       contact_email
       id
-      cards {
+      cards(order_by: { leftAmount: asc }) {
         id
         leftAmount
         number
@@ -98,6 +98,28 @@ export const CREATE_TRANSACTION = gql`
         delek_id: $delekId
       }
     ) {
+      id
+    }
+  }
+`;
+
+export const CREATE_DELEK_CARD = gql`
+  mutation ($leftAmount: Int, $orgId: Int, $inUse: Boolean, $number: String) {
+    insert_delek_one(
+      object: {
+        leftAmount: $leftAmount
+        inUse: $inUse
+        number: $number
+        org_id: $orgId
+      }
+    ) {
+      id
+    }
+  }
+`;
+export const CREATE_USER = gql`
+  mutation ($name: String, $orgId: Int, $code: Int) {
+    insert_users_one(object: { code: $code, name: $name, org_id: $orgId }) {
       id
     }
   }

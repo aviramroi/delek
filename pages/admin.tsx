@@ -1,9 +1,15 @@
-import { Button, Label } from "flowbite-react";
-import { GET_ORG_FULL_DATA, LOGIN } from "lib/api";
+import { Button, Label, Modal } from "flowbite-react";
+import {
+  CREATE_DELEK_CARD,
+  CREATE_USER,
+  GET_ORG_FULL_DATA,
+  LOGIN,
+} from "lib/api";
 import client from "lib/client";
 import React, { useEffect, useState } from "react";
 import cx from "classnames";
 import { toast } from "react-toastify";
+import { useQuery } from "@apollo/client";
 
 const Login = ({ setUser }: { setUser: (org: any) => void }) => {
   const [password, setPassword] = useState("");
@@ -49,24 +55,20 @@ const Dashboard = ({ user }: { user: any }) => {
   const [tab, setTab] = useState<"users" | "cards">("cards");
   const [cards, setCards] = useState([]);
   const [users, setUsers] = useState([]);
+  const { refetch, data } = useQuery(GET_ORG_FULL_DATA, {
+    variables: { id: user.id },
+  });
 
   useEffect(() => {
-    (async () => {
-      const { data } = await client.query({
-        query: GET_ORG_FULL_DATA,
-        variables: {
-          id: user.id,
-        },
-      });
-
+    if (data) {
       if (data.organizations.length > 0) {
         setCards(data.organizations[0].cards);
         setUsers(data.organizations[0].users);
       } else {
         toast.error("משהו השתבש");
       }
-    })();
-  }, []);
+    }
+  }, [data]);
 
   return (
     <div className=" flex flex-col mt-4 flex-grow">
@@ -94,37 +96,179 @@ const Dashboard = ({ user }: { user: any }) => {
           משתמשים
         </button>
       </div>
-      {tab === "cards" && <Cards cards={cards} />}
-      {tab === "users" && <Users users={users} />}
+      {tab === "cards" && (
+        <Cards cards={cards} orgId={user.id} refetch={refetch} />
+      )}
+      {tab === "users" && (
+        <Users users={users} orgId={user.id} refetch={refetch} />
+      )}
     </div>
   );
 };
 
-const Users = ({ users }: { users: any[] }) => {
+const Users = ({
+  users,
+  orgId,
+  refetch,
+}: {
+  users: any[];
+  orgId: number;
+  refetch: () => void;
+}) => {
+  const [isShowing, setShowing] = useState(false);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState<number>();
+
+  const handleNewCard = async () => {
+    const data = await client.mutate({
+      mutation: CREATE_USER,
+      variables: {
+        code: code,
+        name: name,
+        orgId: orgId,
+      },
+    });
+
+    if (data.data) {
+      toast.success("נוצר בהצלחה");
+      await refetch();
+    } else {
+      toast.error("אופס.. משהו השתבש נסה שוב");
+    }
+    setShowing(false);
+  };
+
   return (
-    <div>
-      {users.map((u) => {
-        return (
-          <div key={u.id} className=" hover:bg-gray-100 p-2 ">
-            {u.name} - {u.code}
+    <>
+      <Modal show={isShowing} onClose={() => setShowing(false)}>
+        <Modal.Header></Modal.Header>
+        <Modal.Body>
+          <div className="flex flex-col gap-3">
+            <h1>הוספת משתמשים</h1>
+            <div className="flex flex-col gap-2 ">
+              <Label>הזנת שם</Label>
+              <input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                }}
+                className="border rounded-md p-2 text-lg"
+                placeholder="שם מלא"
+              />
+            </div>
+            <div className="flex flex-col gap-2 ">
+              <Label>הזנת קוד</Label>
+              <input
+                value={code}
+                onChange={(e) => {
+                  setCode(+e.target.value);
+                }}
+                placeholder="קוד 4 ספרות"
+                className="border rounded-md p-2 text-lg"
+                type="number"
+              />
+            </div>
+            <Button onClick={handleNewCard}>יצירה</Button>
           </div>
-        );
-      })}
-    </div>
+        </Modal.Body>
+      </Modal>
+      <div>
+        {users.map((u) => {
+          return (
+            <div key={u.id} className=" hover:bg-gray-100 p-2 ">
+              {u.name} - {u.code}
+            </div>
+          );
+        })}
+      </div>
+      <div className=" mt-2 mb-2">
+        <Button onClick={() => setShowing(true)}>צור חדש</Button>
+      </div>
+    </>
   );
 };
 
-const Cards = ({ cards }: { cards: any[] }) => {
+const Cards = ({
+  cards,
+  orgId,
+  refetch,
+}: {
+  cards: any[];
+  orgId: unknown;
+  refetch: () => void;
+}) => {
+  const [isShowing, setShowing] = useState(false);
+  const [delek, setDelek] = useState("");
+  const [amount, setAmount] = useState<string>();
+
+  const handleNewCard = async () => {
+    const data = await client.mutate({
+      mutation: CREATE_DELEK_CARD,
+      variables: {
+        leftAmount: amount,
+        inUse: false,
+        number: delek,
+        orgId: orgId,
+      },
+    });
+
+    if (data.data) {
+      toast.success("נוצר בהצלחה");
+      await refetch();
+    } else {
+      toast.error("אופס.. משהו השתבש נסה שוב");
+    }
+    setShowing(false);
+  };
+
   return (
-    <div className=" h-64 overflow-y-scroll flex-grow">
-      {cards.map((c) => {
-        return (
-          <div key={c.id} className=" hover:bg-gray-100 p-2">
-            {c.number} - {c.inUse ? "בשימוש" : "לא בשימוש"} - {c.leftAmount}
+    <>
+      <Modal show={isShowing} onClose={() => setShowing(false)}>
+        <Modal.Header></Modal.Header>
+        <Modal.Body>
+          <div className="flex flex-col gap-3">
+            <h1>הוספת כרטיס דלק</h1>
+            <div className="flex flex-col gap-2 ">
+              <Label>הזנת קוד קשפז</Label>
+              <input
+                value={delek}
+                onChange={(e) => {
+                  setDelek(e.target.value);
+                }}
+                className="border rounded-md p-2 text-lg"
+                placeholder="קוד דלק"
+                type="number"
+              />
+            </div>
+            <div className="flex flex-col gap-2 ">
+              <Label>הזנת סכום</Label>
+              <input
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                }}
+                placeholder="סכום"
+                className="border rounded-md p-2 text-lg"
+                type="number"
+              />
+            </div>
+            <Button onClick={handleNewCard}>יצירה</Button>
           </div>
-        );
-      })}
-    </div>
+        </Modal.Body>
+      </Modal>
+      <div className=" h-64 overflow-y-scroll flex-grow">
+        {cards.map((c) => {
+          return (
+            <div key={c.id} className=" hover:bg-gray-100 p-2">
+              {c.number} - {c.inUse ? "בשימוש" : "לא בשימוש"} - {c.leftAmount}
+            </div>
+          );
+        })}
+      </div>
+      <div className=" mt-2 mb-2">
+        <Button onClick={() => setShowing(true)}>צור חדש</Button>
+      </div>
+    </>
   );
 };
 
