@@ -23,7 +23,7 @@
     "lodash": "^4.17.21",
     "next": "^12.3.0",
     "next-auth": "^4.10.3",
-    "next-seo": "^5.5.0",
+    "next-seo": "^5.15.0",
     "nextjs-breadcrumbs": "^1.1.9",
     "nprogress": "^0.2.0",
     "postcss": "^8.4.16",
